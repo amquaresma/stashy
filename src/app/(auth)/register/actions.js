@@ -21,6 +21,8 @@ export async function checkUsernameAvailability(username) {
     .maybeSingle()
 
   if (error) {
+    // LOG temporário de debug — vai aparecer no terminal do npm run dev.
+    console.error('[checkUsernameAvailability] erro Supabase:', error)
     return { available: false, reason: 'error', message: error.message }
   }
 
@@ -56,11 +58,11 @@ export async function registerUser(prevState, formData) {
 
   const supabase = await createClient()
 
-  // Checagem final de disponibilidade antes de tentar o cadastro
-  // (a garantia definitiva contra corrida é a constraint UNIQUE
-  // no banco, isso aqui é só pra dar um erro mais claro).
-  const { available } = await checkUsernameAvailability(username)
+  const { available, reason, message } = await checkUsernameAvailability(username)
   if (!available) {
+    if (reason === 'error') {
+      return { status: 'error', message: `Erro ao checar username: ${message}` }
+    }
     return { status: 'error', message: 'Esse username já está em uso.' }
   }
 
@@ -80,6 +82,7 @@ export async function registerUser(prevState, formData) {
   })
 
   if (error) {
+    console.error('[registerUser] erro Supabase signUp:', error)
     if (error.message.toLowerCase().includes('already registered')) {
       return { status: 'error', message: 'Já existe uma conta com esse e-mail.' }
     }

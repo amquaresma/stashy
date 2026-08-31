@@ -9,7 +9,7 @@ export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(registerUser, initialState)
 
   const [username, setUsername] = useState('')
-  const [usernameStatus, setUsernameStatus] = useState('idle') // idle | checking | available | taken | invalid
+  const [usernameStatus, setUsernameStatus] = useState('idle') // idle | checking | available | taken | invalid | error
   const [isChecking, startChecking] = useTransition()
 
   useEffect(() => {
@@ -25,6 +25,8 @@ export default function RegisterPage() {
 
         if (result.reason === 'invalid_format') {
           setUsernameStatus('invalid')
+        } else if (result.reason === 'error') {
+          setUsernameStatus('error')
         } else if (result.available) {
           setUsernameStatus('available')
         } else {
@@ -157,6 +159,10 @@ function UsernameHint({ status }) {
     invalid: {
       text: 'Use apenas letras minúsculas, números, "_" e "."',
       className: 'text-red-600',
+    },
+    error: {
+      text: '⚠ Erro ao verificar (veja o terminal do servidor)',
+      className: 'text-amber-600',
     },
   }
 
