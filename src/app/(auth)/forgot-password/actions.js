@@ -19,9 +19,9 @@ export async function requestPasswordReset(prevState, formData) {
     redirectTo: `${origin}/auth/confirm?next=/reset-password`,
   })
 
-  // Por segurança, não revelamos se o e-mail existe ou não —
-  // sempre mostramos a mesma mensagem de sucesso.
   if (error) {
+    // LOG temporário de debug — vai aparecer no terminal do npm run dev.
+    console.error('[requestPasswordReset] erro Supabase:', error)
     return { status: 'error', message: 'Não foi possível enviar o e-mail. Tente novamente.' }
   }
 
