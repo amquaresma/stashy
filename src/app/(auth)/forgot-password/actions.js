@@ -15,12 +15,17 @@ export async function requestPasswordReset(prevState, formData) {
   const headersList = await headers()
   const origin = headersList.get('origin')
 
+  const redirectTo = `${origin}/auth/confirm?next=/reset-password`
+
+  // LOG temporário de debug — vai aparecer no terminal do npm run dev.
+  console.log('[requestPasswordReset] origin:', origin)
+  console.log('[requestPasswordReset] redirectTo enviado ao Supabase:', redirectTo)
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/confirm?next=/reset-password`,
+    redirectTo,
   })
 
   if (error) {
-    // LOG temporário de debug — vai aparecer no terminal do npm run dev.
     console.error('[requestPasswordReset] erro Supabase:', error)
     return { status: 'error', message: 'Não foi possível enviar o e-mail. Tente novamente.' }
   }
