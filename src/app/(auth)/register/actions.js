@@ -2,32 +2,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { isValidUsernameFormat } from '@/lib/validators/username'
+import { checkUsernameAvailability } from '@/lib/actions/username'
 import { headers } from 'next/headers'
 
-// A2/A3: checagem de disponibilidade de username em tempo real.
-// Consulta a view public_profiles (não a tabela profiles direto)
-// porque o RLS de profiles só libera a própria linha do usuário.
-export async function checkUsernameAvailability(username) {
-  if (!isValidUsernameFormat(username)) {
-    return { available: false, reason: 'invalid_format' }
-  }
-
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('public_profiles')
-    .select('id')
-    .eq('username', username)
-    .maybeSingle()
-
-  if (error) {
-    // LOG temporário de debug — vai aparecer no terminal do npm run dev.
-    console.error('[checkUsernameAvailability] erro Supabase:', error)
-    return { available: false, reason: 'error', message: error.message }
-  }
-
-  return { available: !data }
-}
+export { checkUsernameAvailability }
 
 // A1: cadastro. Cria o usuário no auth.users — o trigger
 // handle_new_user cuida de criar a linha em profiles.
