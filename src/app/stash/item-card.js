@@ -1,23 +1,40 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { markPurchased, setInterest, softDeleteItem } from './actions'
+import AllocationModal from './allocation-modal'
 
 function formatPrice(price) {
   if (price == null) return null
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price)
 }
 
-export default function ItemCard({ item }) {
+export default function ItemCard({
+  item,
+  allCollections,
+  initialCollectionIds,
+  selected,
+  onToggleSelect,
+}) {
+  const [showModal, setShowModal] = useState(false)
+
   const isPurchased = item.status === 'PURCHASED'
   // B7: item com 👎 fica com opacidade reduzida, pra desencorajar
   // compra por impulso.
   const isDisliked = item.interest === 'down'
 
   return (
-    <div
-      className={`border rounded p-4 flex gap-4 ${isDisliked ? 'opacity-50' : ''}`}
-    >
+    <div className={`border rounded p-4 flex gap-4 ${isDisliked ? 'opacity-50' : ''}`}>
+      {onToggleSelect && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(item.id)}
+          className="mt-1 shrink-0"
+        />
+      )}
+
       {item.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -39,15 +56,13 @@ export default function ItemCard({ item }) {
           </h3>
         </div>
 
-        {item.price != null && (
-          <p className="text-sm text-gray-600">{formatPrice(item.price)}</p>
-        )}
+        {item.price != null && <p className="text-sm text-gray-600">{formatPrice(item.price)}</p>}
 
         {item.description && (
           <p className="text-sm text-gray-500 truncate">{item.description}</p>
         )}
 
-        <div className="flex items-center gap-3 mt-2">
+        <div className="flex items-center gap-3 mt-2 flex-wrap">
           <button
             type="button"
             onClick={() => setInterest(item.id, 'up')}
@@ -65,9 +80,17 @@ export default function ItemCard({ item }) {
             👎
           </button>
 
-          <Link href={`/stash/${item.id}/edit`} className="text-sm text-orange-600 ml-2">
+          <Link href={`/stash/${item.id}/edit`} className="text-sm text-orange-600">
             Editar
           </Link>
+
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="text-sm text-gray-700"
+          >
+            Coleções
+          </button>
 
           {!isPurchased && (
             <button
@@ -88,6 +111,15 @@ export default function ItemCard({ item }) {
           </button>
         </div>
       </div>
+
+      {showModal && (
+        <AllocationModal
+          itemId={item.id}
+          allCollections={allCollections}
+          initialCollectionIds={initialCollectionIds}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }

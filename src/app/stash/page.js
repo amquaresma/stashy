@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import ItemCard from './item-card'
 import QuickSave from './quick-save'
 import SearchFilterBar from './search-filter-bar'
+import ItemList from './item-list'
 
 const SORT_MAP = {
   recent: { column: 'created_at', ascending: false },
@@ -25,12 +25,9 @@ export default async function StashPage({ searchParams }) {
     .eq('owner_id', user.id)
     .neq('status', 'DELETED')
 
-  // B10: busca por nome/descrição.
   if (params.q) {
     query = query.or(`name.ilike.%${params.q}%,description.ilike.%${params.q}%`)
   }
-
-  // B11: filtros por status e interesse.
   if (params.status) {
     query = query.eq('status', params.status)
   }
@@ -38,7 +35,6 @@ export default async function StashPage({ searchParams }) {
     query = query.eq('interest', params.interest)
   }
 
-  // B12: ordenação.
   const sort = SORT_MAP[params.sort] ?? SORT_MAP.recent
   query = query.order(sort.column, { ascending: sort.ascending })
 
@@ -46,6 +42,25 @@ export default async function StashPage({ searchParams }) {
 
   if (error) {
     console.error('[StashPage] erro ao buscar items:', error)
+  }
+
+  // Coleções do usuário, para o modal de alocação e bulk actions.
+  const { data: allCollections } = await supabase
+    .from('collections')
+    .select('id, name, color')
+    .eq('owner_id', user.id)
+    .eq('is_completed', false)
+    .order('name')
+
+  // Em quais coleções cada item já está.
+  const { data: allocations } = await supabase
+    .from('collection_items')
+    .select('item_id, collection_id')
+
+  const collectionsByItem = {}
+  for (const row of allocations ?? []) {
+    if (!collectionsByItem[row.item_id]) collectionsByItem[row.item_id] = []
+    collectionsByItem[row.item_id].push(row.collection_id)
   }
 
   return (
@@ -65,16 +80,14 @@ export default async function StashPage({ searchParams }) {
       <SearchFilterBar />
 
       {(!items || items.length === 0) && (
-        <p className="text-gray-500 text-sm">
-          Nenhum item encontrado.
-        </p>
+        <p className="text-gray-500 text-sm">Nenhum item encontrado.</p>
       )}
 
-      <div className="space-y-3">
-        {items?.map((item) => (
-          <ItemCard key={item.id} item={item} />
-        ))}
-      </div>
+      <ItemList
+        items={items ?? []}
+        allCollections={allCollections ?? []}
+        collectionsByItem={collectionsByItem}
+      />
     </div>
   )
 }

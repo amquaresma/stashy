@@ -241,3 +241,58 @@ export async function removeItemTag(itemId, tagId) {
   await supabase.from('item_tags').delete().eq('item_id', itemId).eq('tag_id', tagId)
   revalidatePath(`/stash/${itemId}/edit`)
 }
+// C3: upload de capa para o bucket "collection-covers" do Storage.
+const MAX_COVER_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
+export async function uploadCollectionCover(collectionId, formData) {
+  const supabase = await createClient()
+  const user = await getCurrentUser(supabase)
+  if (!user) return { status: 'error', message: 'Sessão expirada.' }
+
+  const file = formData.get('cover')
+
+  if (!file || typeof file === 'string' || file.size === 0) {
+    return { status: 'error', message: 'Selecione uma imagem.' }
+  }
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return { status: 'error', message: 'Formato inválido. Use JPG, PNG, WEBP ou GIF.' }
+  }
+
+  if (file.size > MAX_COVER_SIZE) {
+    return { status: 'error', message: 'Imagem muito grande (máximo 5MB).' }
+  }
+
+  const extension = file.type.split('/')[1]
+  const path = `${user.id}/${collectionId}.${extension}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('collection-covers')
+    .upload(path, file, { upsert: true, contentType: file.type })
+
+  if (uploadError) {
+    console.error('[uploadCollectionCover] erro ao subir arquivo:', uploadError)
+    return { status: 'error', message: 'Não foi possível enviar a imagem.' }
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from('collection-covers').getPublicUrl(path)
+
+  const coverUrl = `${publicUrl}?v=${Date.now()}`
+
+  const { error: updateError } = await supabase
+    .from('collections')
+    .update({ cover_url: coverUrl })
+    .eq('id', collectionId)
+    .eq('owner_id', user.id)
+
+  if (updateError) {
+    console.error('[uploadCollectionCover] erro ao salvar cover_url:', updateError)
+    return { status: 'error', message: 'Imagem enviada, mas não foi possível salvar.' }
+  }
+
+  return { status: 'success', coverUrl }
+}
+
