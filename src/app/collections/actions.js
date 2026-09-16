@@ -83,3 +83,18 @@ export async function deleteCollection(collectionId) {
 
   revalidatePath('/collections')
 }
+
+// C8: marcar coleção como concluída — ela some da área principal
+// e vai para o Histórico de Conquistas.
+export async function completeCollection(collectionId) {
+  const supabase = await createClient()
+  const user = await getCurrentUser(supabase)
+  if (!user) return
+  await supabase
+    .from('collections')
+    .update({ is_completed: true, completed_at: new Date().toISOString() })
+    .eq('id', collectionId)
+    .eq('owner_id', user.id)
+  revalidatePath('/collections')
+  revalidatePath(`/collections/${collectionId}`)
+}

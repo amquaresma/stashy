@@ -24,12 +24,17 @@ export default async function CollectionsPage() {
     <div className="min-h-screen px-4 py-8 max-w-2xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Coleções</h1>
-        <Link
-          href="/collections/new"
-          className="bg-orange-600 text-white rounded px-4 py-2 text-sm font-medium"
-        >
-          + Nova coleção
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/collections/history" className="text-sm text-gray-600">
+            Histórico
+          </Link>
+          <Link
+            href="/collections/new"
+            className="bg-orange-600 text-white rounded px-4 py-2 text-sm font-medium"
+          >
+            + Nova coleção
+          </Link>
+        </div>
       </div>
 
       {(!collections || collections.length === 0) && (
