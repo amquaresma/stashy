@@ -153,3 +153,37 @@ export async function uploadCollectionCover(collectionId, formData) {
 
   return { status: 'success', coverUrl }
 }
+
+// ------------------------------------------------------------
+// E: Lixeira
+// ------------------------------------------------------------
+
+// E3: restaurar item da lixeira. As alocações em coleções
+// (collection_items) nunca foram removidas no soft delete, então
+// o item volta automaticamente pras coleções que já tinha.
+export async function restoreItem(itemId) {
+  const supabase = await createClient()
+  const user = await getCurrentUser(supabase)
+  if (!user) return
+
+  await supabase
+    .from('items')
+    .update({ status: 'ACTIVE', deleted_at: null })
+    .eq('id', itemId)
+    .eq('owner_id', user.id)
+
+  revalidatePath('/trash')
+  revalidatePath('/stash')
+}
+
+// E4: exclusão permanente, a pedido do usuário (antes dos 60 dias
+// da limpeza automática).
+export async function permanentlyDeleteItem(itemId) {
+  const supabase = await createClient()
+  const user = await getCurrentUser(supabase)
+  if (!user) return
+
+  await supabase.from('items').delete().eq('id', itemId).eq('owner_id', user.id)
+
+  revalidatePath('/trash')
+}
